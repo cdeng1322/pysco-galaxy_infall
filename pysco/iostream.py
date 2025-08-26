@@ -124,10 +124,10 @@ def read_snapshot_particles_parquet(
 
     logging.warning(f"Read parquet snapshot {filename}")
     position = np.ascontiguousarray(
-        np.array(pq.read_table(filename, columns=["x", "y", "z"])).T
+        np.array(pq.read_table(filename, columns=["x", "y", "z"]))
     )
     velocity = np.ascontiguousarray(
-        np.array(pq.read_table(filename, columns=["vx", "vy", "vz"])).T
+        np.array(pq.read_table(filename, columns=["vx", "vy", "vz"]))
     )
     return (position, velocity)
 
@@ -188,7 +188,7 @@ def write_snapshot_particles(
 def write_snapshot_particles_parquet(
     filename: str,
     position: npt.NDArray[np.float32],
-    velocity: npt.NDArray[np.float32],
+    velocity: npt.NDArray[np.float32]
 ) -> None:
     """Write snapshot with particle information in parquet format
 
@@ -211,7 +211,6 @@ def write_snapshot_particles_parquet(
     """
     import pyarrow as pa
     import pyarrow.parquet as pq
-
     table = pa.table(
         {
             "x": position[:, 0],
@@ -219,9 +218,10 @@ def write_snapshot_particles_parquet(
             "z": position[:, 2],
             "vx": velocity[:, 0],
             "vy": velocity[:, 1],
-            "vz": velocity[:, 2],
+            "vz": velocity[:, 2]
         }
     )
+    #print('Writing snapshot to parquet file...')
 
     pq.write_table(table, filename)
 

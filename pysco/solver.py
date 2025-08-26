@@ -77,16 +77,20 @@ def pm(
     MASS_SCHEME = param["mass_scheme"].casefold()
     THEORY = param["theory"].casefold()
 
-    match MASS_SCHEME:
+    match MASS_SCHEME: # density assignment scheme
         case "cic":
             param["MAS_index"] = 2
             density = mesh.CIC(position, ncells_1d)
         case "tsc":
             param["MAS_index"] = 3
             if param["nthreads"] >= 4:
-                density = mesh.TSC(position, ncells_1d)
+                mass = np.array(param['mass'], dtype=np.float32)
+                position = position.astype(np.float32)
+                density = mesh.TSC(position, ncells_1d, mass) # this is total mass density field (array form) on the mesh
             else:
-                density = mesh.TSC_seq(position, ncells_1d)
+                mass = np.array(param['mass'], dtype=np.float32)
+                position = position.astype(np.float32)
+                density = mesh.TSC_seq(position, ncells_1d, mass)
         case _:
             raise NotImplementedError(
                 f"{param['mass_scheme']=}, should be 'CIC' or 'TSC'"
@@ -111,9 +115,30 @@ def pm(
     else:
         param["parametrized_mu_z"] = np.float32(1)
 
-    if ncells_1d**3 != param["npart"]:
-        conversion = np.float32(ncells_1d**3 / param["npart"])
+    ###
+    #if ncells_1d**3 != param["npart"]: # ncells_1d = 2 ** (param["ncoarse"])
+        #conversion = np.float32(ncells_1d**3 / param["npart"])
+        #utils.prod_vector_scalar_inplace(density, conversion) # normalise mass to the particle count
+    ### we want to rescale the density so the mean density is equal to the total mass divided by the box volume in simulation units
+    ### in stead of "np.mean(densty) = 1
+    if ncells_1d**3 != param["npart"]: # we dont assume one particle per cell
+        #print('\nTo normalise density field:')
+        from astropy.constants import M_sun
+        M_total = np.sum(param["mass"]) * M_sun.value # total mass in kg
+        #print(f"particle masses are = {particle_masses[0]:.3e} and {particle_masses[1]:.3e} kg")
+        box_volume_BU = 1  # in BU³
+        box_volume_km3 = box_volume_BU * param["unit_l"] ** 3 # BU³ to km³
+        #print(f'Box volume = {box_volume_km3:.3e} km³ (1 BU = {param["unit_l"]:.3e} km)')
+        physical_mean_density = M_total / box_volume_km3      # kg/km³
+        #print(f'physical mean density = {physical_mean_density:.3e} kg/km³')
+        box_mean_density = np.mean(density) # in 1/BU^3
+        #print(f'box mean density = {box_mean_density:.3e} 1/BU^3 = {(box_mean_density * param["unit_d"]):.3e} kg/km³')
+        conversion = physical_mean_density / (box_mean_density * param["unit_d"]) # param["unit_d"] is 1/BU to kg/km3
         utils.prod_vector_scalar_inplace(density, conversion)
+        #print('normalised (mean) density', np.mean(density))
+        
+
+
 
     SAVE_POWER_SPECTRUM = param["save_power_spectrum"].casefold()
     if SAVE_POWER_SPECTRUM == "yes":

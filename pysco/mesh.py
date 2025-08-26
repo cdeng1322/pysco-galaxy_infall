@@ -2357,9 +2357,10 @@ def CIC(position: npt.NDArray[np.float32], ncells_1d: int) -> npt.NDArray[np.flo
 
 
 @utils.time_me
-@njit(["f4[:,:,::1](f4[:,::1], i2)"], fastmath=True, cache=True)
-def TSC_seq(
-    position: npt.NDArray[np.float32], ncells_1d: int
+#@njit(["f4[:,:,::1](f4[:,::1], i2)"], fastmath=True, cache=True)
+@njit(["f4[:, :, ::1](f4[:, ::1], i2, f4[:])"], fastmath=True, cache=True)
+def TSC_seq( # position in BU [0, 1]
+    position: npt.NDArray[np.float32], ncells_1d: int, mass: npt.NDArray[np.float32]
 ) -> npt.NDArray[np.float32]:
     """Triangular-Shaped Cloud interpolation (sequential)
 
@@ -2371,6 +2372,8 @@ def TSC_seq(
         Position [N_part, 3]
     ncells_1d : int
         Number of cells along one direction
+    mass : npt.NDArray[np.float32]
+        Mass of each particle [N_part]
 
     Returns
     -------
@@ -2429,40 +2432,48 @@ def TSC_seq(
         j_p1 = j - ncells_1d_m1
         k_p1 = k - ncells_1d_m1
 
-        result[i_m1, j_m1, k_m1] += wx_m1_y_m1 * wz_m1
-        result[i_m1, j_m1, k] += wx_m1_y_m1 * wz
-        result[i_m1, j_m1, k_p1] += wx_m1_y_m1 * wz_p1
-        result[i_m1, j, k_m1] += wx_m1_y * wz_m1
-        result[i_m1, j, k] += wx_m1_y * wz
-        result[i_m1, j, k_p1] += wx_m1_y * wz_p1
-        result[i_m1, j_p1, k_m1] += wx_m1_y_p1 * wz_m1
-        result[i_m1, j_p1, k] += wx_m1_y_p1 * wz
-        result[i_m1, j_p1, k_p1] += wx_m1_y_p1 * wz_p1
-        result[i, j_m1, k_m1] += wx_y_m1 * wz_m1
-        result[i, j_m1, k] += wx_y_m1 * wz
-        result[i, j_m1, k_p1] += wx_y_m1 * wz_p1
-        result[i, j, k_m1] += wx_y * wz_m1
-        result[i, j, k] += wx_y * wz
-        result[i, j, k_p1] += wx_y * wz_p1
-        result[i, j_p1, k_m1] += wx_y_p1 * wz_m1
-        result[i, j_p1, k] += wx_y_p1 * wz
-        result[i, j_p1, k_p1] += wx_y_p1 * wz_p1
-        result[i_p1, j_m1, k_m1] += wx_p1_y_m1 * wz_m1
-        result[i_p1, j_m1, k] += wx_p1_y_m1 * wz
-        result[i_p1, j_m1, k_p1] += wx_p1_y_m1 * wz_p1
-        result[i_p1, j, k_m1] += wx_p1_y * wz_m1
-        result[i_p1, j, k] += wx_p1_y * wz
-        result[i_p1, j, k_p1] += wx_p1_y * wz_p1
-        result[i_p1, j_p1, k_m1] += wx_p1_y_p1 * wz_m1
-        result[i_p1, j_p1, k] += wx_p1_y_p1 * wz
-        result[i_p1, j_p1, k_p1] += wx_p1_y_p1 * wz_p1
+        mass_n = mass[n] / np.sum(mass)
+        #print(f'particle{n} mass = {mass[n]} Msun')
+        #print(f'start to weight particle{n} by {mass_n}')
+
+        # multiply each cell by mass_n to scale the TSC weight function by mass
+        # area under each TSC weight function is 1
+        result[i_m1, j_m1, k_m1] += wx_m1_y_m1 * wz_m1 * mass_n
+        result[i_m1, j_m1, k] += wx_m1_y_m1 * wz * mass_n
+        result[i_m1, j_m1, k_p1] += wx_m1_y_m1 * wz_p1 * mass_n
+        result[i_m1, j, k_m1] += wx_m1_y * wz_m1 * mass_n
+        result[i_m1, j, k] += wx_m1_y * wz * mass_n
+        result[i_m1, j, k_p1] += wx_m1_y * wz_p1 * mass_n
+        result[i_m1, j_p1, k_m1] += wx_m1_y_p1 * wz_m1 * mass_n
+        result[i_m1, j_p1, k] += wx_m1_y_p1 * wz * mass_n
+        result[i_m1, j_p1, k_p1] += wx_m1_y_p1 * wz_p1 * mass_n
+        result[i, j_m1, k_m1] += wx_y_m1 * wz_m1 * mass_n
+        result[i, j_m1, k] += wx_y_m1 * wz * mass_n
+        result[i, j_m1, k_p1] += wx_y_m1 * wz_p1 * mass_n
+        result[i, j, k_m1] += wx_y * wz_m1 * mass_n
+        result[i, j, k] += wx_y * wz * mass_n
+        result[i, j, k_p1] += wx_y * wz_p1 * mass_n
+        result[i, j_p1, k_m1] += wx_y_p1 * wz_m1 * mass_n
+        result[i, j_p1, k] += wx_y_p1 * wz * mass_n
+        result[i, j_p1, k_p1] += wx_y_p1 * wz_p1 * mass_n
+        result[i_p1, j_m1, k_m1] += wx_p1_y_m1 * wz_m1 * mass_n
+        result[i_p1, j_m1, k] += wx_p1_y_m1 * wz * mass_n
+        result[i_p1, j_m1, k_p1] += wx_p1_y_m1 * wz_p1 * mass_n
+        result[i_p1, j, k_m1] += wx_p1_y * wz_m1 * mass_n
+        result[i_p1, j, k] += wx_p1_y * wz * mass_n
+        result[i_p1, j, k_p1] += wx_p1_y * wz_p1 * mass_n
+        result[i_p1, j_p1, k_m1] += wx_p1_y_p1 * wz_m1 * mass_n
+        result[i_p1, j_p1, k] += wx_p1_y_p1 * wz * mass_n
+        result[i_p1, j_p1, k_p1] += wx_p1_y_p1 * wz_p1 * mass_n
     return result
 
 
 # TODO: To be improved when numba atomics are available
 @utils.time_me
-@njit(["f4[:,:,::1](f4[:,::1], i2)"], fastmath=True, cache=True, parallel=True)
-def TSC(position: npt.NDArray[np.float32], ncells_1d: int) -> npt.NDArray[np.float32]:
+@njit(["f4[:, :, ::1](f4[:, ::1], i2, f4[:])"], fastmath=True, cache=True, parallel=True)
+def TSC(position: npt.NDArray[np.float32], 
+        ncells_1d: int, 
+        mass: npt.NDArray[np.float32]) -> npt.NDArray[np.float32]:
     """Triangular-Shaped Cloud interpolation
 
     Computes density on a grid from particle distribution
@@ -2475,6 +2486,8 @@ def TSC(position: npt.NDArray[np.float32], ncells_1d: int) -> npt.NDArray[np.flo
         Position [N_part, 3]
     ncells_1d : int
         Number of cells along one direction
+    mass : npt.NDArray[np.float32]
+        Mass ratio of each particle [N_part]
 
     Returns
     -------
@@ -2533,59 +2546,88 @@ def TSC(position: npt.NDArray[np.float32], ncells_1d: int) -> npt.NDArray[np.flo
         j_p1 = j - ncells_1d_m1
         k_p1 = k - ncells_1d_m1
 
+        mass_n = mass[n] / np.max(mass)
+
         weight = wx_m1_y_m1 * wz_m1
+        weight *= mass_n
         atomic_add(result, (i_m1, j_m1, k_m1), weight)
         weight = wx_m1_y_m1 * wz
+        weight *= mass_n
         atomic_add(result, (i_m1, j_m1, k), weight)
         weight = wx_m1_y_m1 * wz_p1
+        weight *= mass_n
         atomic_add(result, (i_m1, j_m1, k_p1), weight)
         weight = wx_m1_y * wz_m1
+        weight *= mass_n
         atomic_add(result, (i_m1, j, k_m1), weight)
         weight = wx_m1_y * wz
+        weight *= mass_n
         atomic_add(result, (i_m1, j, k), weight)
         weight = wx_m1_y * wz_p1
+        weight *= mass_n
         atomic_add(result, (i_m1, j, k_p1), weight)
         weight = wx_m1_y_p1 * wz_m1
+        weight *= mass_n
         atomic_add(result, (i_m1, j_p1, k_m1), weight)
         weight = wx_m1_y_p1 * wz
+        weight *= mass_n
         atomic_add(result, (i_m1, j_p1, k), weight)
         weight = wx_m1_y_p1 * wz_p1
+        weight *= mass_n
         atomic_add(result, (i_m1, j_p1, k_p1), weight)
         weight = wx_y_m1 * wz_m1
+        weight *= mass_n
         atomic_add(result, (i, j_m1, k_m1), weight)
         weight = wx_y_m1 * wz
+        weight *= mass_n
         atomic_add(result, (i, j_m1, k), weight)
         weight = wx_y_m1 * wz_p1
+        weight *= mass_n
         atomic_add(result, (i, j_m1, k_p1), weight)
         weight = wx_y * wz_m1
+        weight *= mass_n
         atomic_add(result, (i, j, k_m1), weight)
         weight = wx_y * wz
+        weight *= mass_n
         atomic_add(result, (i, j, k), weight)
         weight = wx_y * wz_p1
+        weight *= mass_n
         atomic_add(result, (i, j, k_p1), weight)
         weight = wx_y_p1 * wz_m1
+        weight *= mass_n
         atomic_add(result, (i, j_p1, k_m1), weight)
         weight = wx_y_p1 * wz
+        weight *= mass_n
         atomic_add(result, (i, j_p1, k), weight)
         weight = wx_y_p1 * wz_p1
+        weight *= mass_n
         atomic_add(result, (i, j_p1, k_p1), weight)
         weight = wx_p1_y_m1 * wz_m1
+        weight *= mass_n
         atomic_add(result, (i_p1, j_m1, k_m1), weight)
         weight = wx_p1_y_m1 * wz
+        weight *= mass_n
         atomic_add(result, (i_p1, j_m1, k), weight)
         weight = wx_p1_y_m1 * wz_p1
+        weight *= mass_n
         atomic_add(result, (i_p1, j_m1, k_p1), weight)
         weight = wx_p1_y * wz_m1
+        weight *= mass_n
         atomic_add(result, (i_p1, j, k_m1), weight)
         weight = wx_p1_y * wz
+        weight *= mass_n
         atomic_add(result, (i_p1, j, k), weight)
         weight = wx_p1_y * wz_p1
+        weight *= mass_n
         atomic_add(result, (i_p1, j, k_p1), weight)
         weight = wx_p1_y_p1 * wz_m1
+        weight *= mass_n
         atomic_add(result, (i_p1, j_p1, k_m1), weight)
         weight = wx_p1_y_p1 * wz
+        weight *= mass_n
         atomic_add(result, (i_p1, j_p1, k), weight)
         weight = wx_p1_y_p1 * wz_p1
+        weight *= mass_n
         atomic_add(result, (i_p1, j_p1, k_p1), weight)
 
     return result

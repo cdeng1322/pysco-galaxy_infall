@@ -47,6 +47,7 @@ def time_me(func: Callable) -> Callable:
         _type_
             Print time (in seconds)
         """
+        
         t1 = perf_counter()
         result = func(*args, **kw)
         logging.info(
@@ -164,7 +165,7 @@ def index_linear(ijk: npt.NDArray[np.int32], ncells_1d: int) -> npt.NDArray[np.i
     )
 
 
-def set_units(param: pd.Series) -> None:
+def  set_units(param: pd.Series) -> None:
     """Compute dimensions in SI units
 
     Parameters
@@ -184,12 +185,13 @@ def set_units(param: pd.Series) -> None:
     g = G.value * 1e-9  # m3/kg/s2 -> km3/kg/s2
     # Modify relevant quantities
     H0 = param["H0"] / mpc_to_km  # km/s/Mpc -> 1/s
-    rhoc = 3.0 * H0**2 / (8.0 * np.pi * g)  #   kg/km3
-
+    rhoc = 3.0 * H0**2 / (8.0 * np.pi * g)  # critical density in kg/km3
     param["unit_l"] = param["aexp"] * param["boxlen"] * 100.0 / H0  # BU to proper km
-    param["unit_t"] = param["aexp"] ** 2 / H0  # BU to lookback seconds
-    param["unit_d"] = param["Om_m"] * rhoc / param["aexp"] ** 3  # BU to kg/km3
-    param["mpart"] = param["unit_d"] * param["unit_l"] ** 3 / param["npart"]  # In kg
+    param["unit_t"] = param["aexp"] ** 2 / H0  # BU to lookback seconds (1 BU of time → lookback time in seconds.)
+    param["unit_d"] = param["Om_m"] * rhoc / param["aexp"] ** 3  # BU to kg/km3 (1 BU of density → kg/km³)
+    param["mpart"] = param["unit_d"] * param["unit_l"] ** 3 / param["npart"]# In kg (assume same mass for all particles)
+    #print(param["mpart"], "kg per particle")
+
 
 
 @njit(fastmath=True, cache=True, parallel=True)

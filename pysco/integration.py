@@ -322,7 +322,10 @@ def dt_CFL_maxvel(
     >>> dt = dt_CFL_maxvel(velocity, param)
     """
     dx = np.float32(0.5 ** param["ncoarse"])
+    # print('velocity is\n', velocity)
     max_vel = utils.max_abs(velocity)
+    # print('max vel is', max_vel)
+    print('time stepping: ', np.float32(param["Courant_factor"]) * dx / max_vel)
     return np.float32(param["Courant_factor"]) * dx / max_vel
 
 

@@ -39,7 +39,6 @@ def generate(
     -------
     Tuple[npt.NDArray[np.float32], npt.NDArray[np.float32]]
         Position, Velocity [Npart, 3]
-
     Example
     -------
     >>> import numpy as np
@@ -75,6 +74,7 @@ def generate(
     >>> tables = cosmotable.generate(param)
     >>> position, velocity = generate(param, tables)
     """
+
     INITIAL_CONDITIONS = param["initial_conditions"]
     if isinstance(INITIAL_CONDITIONS, int):
         i_restart = int(INITIAL_CONDITIONS)
@@ -83,16 +83,29 @@ def generate(
         match OUTPUT_SNAPSHOT_FORMAT:
             case "parquet":
                 filename = f"{param['base']}/output_{i_restart:05d}/particles_{param['extra']}.parquet"
-                position, velocity = iostream.read_snapshot_particles_parquet(filename)
+                print(f"Reading initial conditions from {filename=}")
+                position, velocity = iostream.read_snapshot_particles_parquet(filename) # position (kpc), velocity (km/s)
+                from astropy.constants import pc
+                kpc_to_km = pc.value
+                # param["unit_l"] is BU to proper km
+                #print('param["unit_l"] ', param["unit_l"] )
+                print(f'Initial position = \n{position} kpc')
+                print(f'Initial velocity = \n{velocity} km/s')
+                position = position * kpc_to_km / param["unit_l"]  # Convert from kpc to BU
+                velocity = velocity * param["unit_t"] / param["unit_l"] # Convert from km/s to BU/BU time
+                print(f'Initial position = \n{position} BU')
+                print(f'Initial velocity = \n{velocity} BU/BU time')
+                #print('reading from parquet file: position and velocity:\n', position, '\n', velocity)
+                finalise_initial_conditions(position, velocity, param, do_reorder=False)
                 param_filename = f"{param['base']}/output_{i_restart:05d}/param_{param['extra']}_{i_restart:05d}.txt"
                 param_restart = iostream.read_param_file(param_filename)
                 logging.warning(f"Parameter file read at ...{param_filename=}")
                 for key in param_restart.index:
                     if key.casefold() is not "nthreads".casefold():
-                        param[key] = param_restart[key]
+                        if key != 'mass':
+                            param[key] = param_restart[key]
             case "hdf5":
                 import h5py
-
                 filename = f"{param['base']}/output_{i_restart:05d}/particles_{param['extra']}.h5"
                 position, velocity = iostream.read_snapshot_particles_hdf5(filename)
                 with h5py.File(filename, "r") as h5r:
@@ -110,6 +123,7 @@ def generate(
         lna_start = np.log(a_start)
         logging.warning(f"{param['z_start']=}")
         Hz = tables[2](lna_start)
+        from astropy.constants import pc
         mpc_to_km = 1e3 * pc.value
         Hz *= param["unit_t"] / mpc_to_km  # km/s/Mpc to BU
         # psi_1lpt = generate_force(param)
@@ -207,6 +221,10 @@ def generate(
         position, velocity = read_hdf5(param)
         finalise_initial_conditions(position, velocity, param, do_reorder=True)
         return position, velocity
+    elif INITIAL_CONDITIONS == "my_new_custom_parameter":
+        # Fill position and velocity arrays
+        
+        return position, velocity
     else:  # Gadget format
         position, velocity = read_gadget(param)
         finalise_initial_conditions(position, velocity, param, do_reorder=True)
@@ -266,7 +284,7 @@ def finalise_initial_conditions(
             )
             iostream.write_snapshot_particles_parquet(snap_name, position, velocity)
             param.to_csv(
-                f"{param['base']}/output_00000/param_{param['extra']}.txt",
+                f"{param['base']}/output_00000/param_{param['extra']}_00000.txt",
                 sep="=",
                 header=False,
             )

@@ -106,11 +106,28 @@ def run(param) -> None:
     # aexp and t are overwritten if we read a snapshot
     param["aexp"] = 1.0 / (1 + param["z_start"])
     utils.set_units(param)
+    #print(param)
     if not "nsteps" in param.index:
         param["nsteps"] = 0
     logging.warning(f"\n[bold blue]----- Initial conditions -----[/bold blue]\n")
     position, velocity = initial_conditions.generate(param, tables)
+    print('\n -- Box parameters --')
+    mpc_to_km = 3.086e19  # 1 Mpc in km
+    print(f'Universe size = 1 BU = {(param["unit_l"] / mpc_to_km):.3f} Mpc')
+    print(f'particle mass = {(param["mpart"] / 1.9885e30):.2e} M_sun')
+    print(f'particle number = {param["npart"]}')
+    print(f'particle density = {(param["unit_d"] * 1.477e28):.2e} Msun/Mpc^3')
     param["t"] = tables[1](np.log(param["aexp"]))
+    print('\n -- Initial conditions --')
+    print(f'Initial redshift = {param["z_start"]}')
+    print(f'Initial scale factor = {param["aexp"]}')
+    print(f'Initial lookback time = {(param["t"]):.3f} seconds')
+    print(f'Initial position = \n{position} BU')
+    print(f'Initial velocity = \n{velocity} BU/s')
+    if param["write_snapshot"]: # Rewrite initial snapshot in BU
+        param['i_snap'] = 0
+        iostream.write_snapshot_particles(position, velocity, param)
+        print(f'Rewrite position = {position} BU, velocity = {velocity} BU/s')
     logging.warning(f"{param['aexp']=} {param['t']=}")
     logging.warning(f"\n[bold blue]----- Run N-body -----[/bold blue]\n")
     acceleration, potential, additional_field = solver.pm(position, param)
@@ -142,6 +159,8 @@ def run(param) -> None:
             param,
             t_out[param["i_snap"] - 1],
         )  # Put None instead of potential if you do not want to use previous step
+        #print('-- Integration Done --\n')
+        #print(f'box length = {(param["boxlen"] * param["unit_l"]):.3e} km')
 
         if (param["nsteps"] % param["n_reorder"]) == 0:
             logging.info("Reordering particles")
@@ -149,10 +168,12 @@ def run(param) -> None:
                 position, velocity, acceleration
             )
         if param["write_snapshot"]:
+            #print('Writing snapshot')
             iostream.write_snapshot_particles(position, velocity, param)
             param["i_snap"] += 1
+            #print(f'box length = {(param["boxlen"] * param["unit_l"]):.3e} km')
         logging.warning(
-            f"{param['nsteps']=} {param['aexp']=} z = {1.0 / param['aexp'] - 1}"
+            f"{param['nsteps']=} {param['aexp']=} z = {1.0 / param['aexp'] - 1}, t = {param['t']}"
         )
 
 
