@@ -132,7 +132,8 @@ def pm(
         physical_mean_density = M_total / box_volume_km3      # kg/km³
         #print(f'physical mean density = {physical_mean_density:.3e} kg/km³')
         box_mean_density = np.mean(density) # in 1/BU^3
-        #print(f'box mean density = {box_mean_density:.3e} 1/BU^3 = {(box_mean_density * param["unit_d"]):.3e} kg/km³')
+        print(f'box mean density = {box_mean_density:.3e} 1/BU^3 = {(box_mean_density * param["unit_d"]):.3e} kg/km³')
+        print(' param["unit_d"]',  param["unit_d"])
         conversion = physical_mean_density / (box_mean_density * param["unit_d"]) # param["unit_d"] is 1/BU to kg/km3
         utils.prod_vector_scalar_inplace(density, conversion)
         #print('normalised (mean) density', np.mean(density))

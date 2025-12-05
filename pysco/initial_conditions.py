@@ -89,12 +89,12 @@ def generate(
                 kpc_to_km = pc.value
                 # param["unit_l"] is BU to proper km
                 #print('param["unit_l"] ', param["unit_l"] )
-                print(f'Initial position = \n{position} kpc')
-                print(f'Initial velocity = \n{velocity} km/s')
+                #print(f'Initial position = \n{position} kpc')
+                #print(f'Initial velocity = \n{velocity} km/s')
                 position = position * kpc_to_km / param["unit_l"]  # Convert from kpc to BU
                 velocity = velocity * param["unit_t"] / param["unit_l"] # Convert from km/s to BU/BU time
-                print(f'Initial position = \n{position} BU')
-                print(f'Initial velocity = \n{velocity} BU/BU time')
+                #print(f'Initial position = \n{position} BU')
+                #print(f'Initial velocity = \n{velocity} BU/BU time')
                 #print('reading from parquet file: position and velocity:\n', position, '\n', velocity)
                 finalise_initial_conditions(position, velocity, param, do_reorder=False)
                 param_filename = f"{param['base']}/output_{i_restart:05d}/param_{param['extra']}_{i_restart:05d}.txt"

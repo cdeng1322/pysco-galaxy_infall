@@ -27,7 +27,7 @@ dependencies = [
     "h5py",
     "rich",
     #"Pylians",    # Only for reading Gadget snapshots
-    "icc-rt", # Optional
+    #"icc-rt", # Optional
     "pyfftw", # Optional
 ]
 

@@ -12,7 +12,6 @@ import solver
 import utils
 import logging
 
-
 @utils.time_me
 def integrate(
     position: npt.NDArray[np.float32],
@@ -259,6 +258,7 @@ def leapfrog(
     acceleration, potential, additional_field = solver.pm(
         position, param, potential, additional_field, tables
     )
+    save_potential_grid(potential, param)
     utils.add_vector_scalar_inplace(velocity, acceleration, -half_dt)
 
     return position, velocity, acceleration, potential, additional_field

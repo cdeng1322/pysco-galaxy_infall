@@ -2409,13 +2409,13 @@ def TSC_seq( # position in BU [0, 1]
         dy = y_part - half - np.float32(j)
         dz = z_part - half - np.float32(k)
 
-        wx = threequarters - dx**2
-        wy = threequarters - dy**2
-        wz = threequarters - dz**2
-        wx_m1 = half * (half - dx) ** 2
+        wx = threequarters - dx**2  # weight in x for central cell
+        wy = threequarters - dy**2  
+        wz = threequarters - dz**2  # cell i - 1
+        wx_m1 = half * (half - dx) ** 2 
         wy_m1 = half * (half - dy) ** 2
         wz_m1 = half * (half - dz) ** 2
-        wx_p1 = half * (half + dx) ** 2
+        wx_p1 = half * (half + dx) ** 2 # cell i + 1
         wy_p1 = half * (half + dy) ** 2
         wz_p1 = half * (half + dz) ** 2
         wx_m1_y_m1 = wx_m1 * wy_m1

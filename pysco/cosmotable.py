@@ -58,13 +58,21 @@ def generate(param: pd.Series) -> List[interp1d]:
 
     z_start = 200
     a_start = 1.0 / (1 + z_start)
-    lna = np.linspace(np.log(a_start), 0, 100_000)
+    import ast
+    z_end = ast.literal_eval(param["z_out"])[-1]
+    a_end = 1.0 / (1 + z_end)
+    #lna = np.linspace(np.log(a_start), 0, 100_000)
+    lna = np.linspace(np.log(a_start), np.log(a_end), 100_000)
     a = np.exp(lna)
     dlna = lna[1] - lna[0]
     E_array = cosmo.efunc(1.0 / a - 1)
     dt_supercomoving = dlna / (a**2 * E_array)
     t_supercomoving = cumulative_trapezoid(dt_supercomoving, initial=0)
-    t_supercomoving -= t_supercomoving[-1]
+    # Shift τ so that τ(a=1) = 0 (find nearest index to ln a = 0)
+    idx_a1 = np.searchsorted(lna, 0.0)
+    idx_a1 = np.clip(idx_a1, 0, len(t_supercomoving) - 1)
+    t_supercomoving -= t_supercomoving[idx_a1]
+    #t_supercomoving -= t_supercomoving[-1]
     growth_functions = compute_growth_functions(cosmo, param)
     mask = growth_functions[0] > lna[0]
     lnaexp_growth, d1, f1, d2, f2, d3a, f3a, d3b, f3b, d3c, f3c = growth_functions[

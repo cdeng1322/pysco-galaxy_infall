@@ -114,16 +114,16 @@ def run(param) -> None:
     print('\n -- Box parameters --')
     mpc_to_km = 3.086e19  # 1 Mpc in km
     print(f'Universe size = 1 BU = {(param["unit_l"] / mpc_to_km):.3f} Mpc')
-    print(f'particle mass = {(param["mpart"] / 1.9885e30):.2e} M_sun')
+    #print(f'particle mass (uniform) = {(param["mpart"] / 1.9885e30):.2e} M_sun')
     print(f'particle number = {param["npart"]}')
-    print(f'particle density = {(param["unit_d"] * 1.477e28):.2e} Msun/Mpc^3')
+    #print(f'particle density (uniform) = {(param["unit_d"] * 1.477e28):.2e} Msun/Mpc^3')
     param["t"] = tables[1](np.log(param["aexp"]))
     print('\n -- Initial conditions --')
     print(f'Initial redshift = {param["z_start"]}')
     print(f'Initial scale factor = {param["aexp"]}')
     print(f'Initial lookback time = {(param["t"]):.3f} seconds')
     print(f'Initial position = \n{position} BU')
-    print(f'Initial velocity = \n{velocity} BU/s')
+    print(f'Initial velocity = \n{velocity} BU/BU time')
     if param["write_snapshot"]: # Rewrite initial snapshot in BU
         param['i_snap'] = 0
         iostream.write_snapshot_particles(position, velocity, param)
